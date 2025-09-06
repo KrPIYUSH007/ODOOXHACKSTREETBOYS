@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Add New Product</title>
+  <style>
+    /* OMAKR.CSS styles */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f8fdf8;
+      color: #333;
+      line-height: 1.5;
+    }
+    .navbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #2f855a;
+      color: white;
+      padding: 1rem 2rem;
+    }
+    .navbar .logo {
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+    .navbar .menu a {
+      color: white;
+      margin-left: 1rem;
+      text-decoration: none;
+    }
+    .navbar .menu a:hover {
+      text-decoration: underline;
+    }
+    .form-container {
+      padding: 2rem;
+      max-width: 600px;
+      margin: 2rem auto;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: bold;
+    }
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 1rem;
+    }
+    .form-group textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+    .submit-btn {
+      display: block;
+      width: 100%;
+      padding: 1rem;
+      background: #2f855a;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      margin-top: 1.5rem;
+    }
+    .submit-btn:hover {
+      background: #276749;
+    }
+    #message {
+      margin-top: 1rem;
+      text-align: center;
+      font-weight: bold;
+      color: #2f855a;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="logo">EcoFinds</div>
+    <div class="menu">
+      <a href="index.html">Feed</a>
+      <a href="addproduct.html">Add Product</a>
+      <a href="mylisting.html">My Listings</a>
+      <a href="cart.html">Cart</a>
+      <a href="prevpur.html">Purchases</a>
+      <a href="dashboard.html">Dashboard</a>
+    </div>
+  </nav>
+
+  <div class="form-container">
+    <h1>Add New Product</h1>
+    <form id="productForm">
+      <div class="form-group">
+        <label for="title">Product Title</label>
+        <input type="text" id="title" required />
+      </div>
+      <div class="form-group">
+        <label for="category">Category</label>
+        <select id="category" required>
+          <option value="">Select a category</option>
+          <option value="electronics">Electronics</option>
+          <option value="clothing">Clothing</option>
+          <option value="home-goods">Home Goods</option>
+          <option value="books">Books</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="description">Description</label>
+        <textarea id="description"></textarea>
+      </div>
+      <div class="form-group">
+        <label for="price">Price</label>
+        <input type="number" id="price" step="0.01" required />
+      </div>
+      <div class="form-group">
+        <label for="image_url">Image URL (Placeholder)</label>
+        <input type="text" id="image_url" />
+      </div>
+      <button type="submit" class="submit-btn">Submit Listing</button>
+      <div id="message"></div>
+    </form>
+  </div>
+
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script>
+    const API_URL = "http://localhost:4000/api";
+    const socket = io("http://localhost:4000");
+    function getToken() { return localStorage.getItem("token"); }
+    function saveToken(token) { localStorage.setItem("token", token); }
+    async function api(endpoint, method = "GET", body = null, auth = false) {
+      const headers = {};
+      if (!(body instanceof FormData)) {
+        headers["Content-Type"] = "application/json";
+      }
+      if (auth && getToken()) {
+        headers["Authorization"] = `Bearer ${getToken()}`;
+      }
+      const res = await fetch(`${API_URL}${endpoint}`, {
+        method,
+        headers,
+        body: body ? (body instanceof FormData ? body : JSON.stringify(body)) : null,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "API error");
+      }
+      return res.json();
+    }
+
+    const productForm = document.getElementById("productForm");
+    const messageDiv = document.getElementById("message");
+
+    productForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      
+      const newProduct = {
+        title: document.getElementById("title").value,
+        category: document.getElementById("category").value,
+        description: document.getElementById("description").value,
+        price: parseFloat(document.getElementById("price").value),
+        image_url: document.getElementById("image_url").value,
+      };
+
+      try {
+        const response = await api("/products", "POST", newProduct);
+        messageDiv.textContent = response.message;
+        messageDiv.style.color = "green";
+        productForm.reset();
+      } catch (error) {
+        console.error("Error submitting product:", error);
+        messageDiv.textContent = "Failed to add product. " + error.message;
+        messageDiv.style.color = "red";
+      }
+    });
+  </script>
+</body>
+</html>

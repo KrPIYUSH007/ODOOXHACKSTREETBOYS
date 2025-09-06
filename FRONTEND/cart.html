@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Your Cart</title>
+  <style>
+    /* OMAKR.CSS styles */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f8fdf8;
+      color: #333;
+      line-height: 1.5;
+    }
+    .navbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #2f855a;
+      color: white;
+      padding: 1rem 2rem;
+    }
+    .navbar .logo {
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+    .navbar .menu a {
+      color: white;
+      margin-left: 1rem;
+      text-decoration: none;
+    }
+    .navbar .menu a:hover {
+      text-decoration: underline;
+    }
+    .container {
+      padding: 2rem;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+    .cart-item {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      padding: 1rem;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      background: white;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      margin-bottom: 1rem;
+    }
+    .cart-item img {
+      width: 100px;
+      height: 100px;
+      object-fit: cover;
+      border-radius: 5px;
+    }
+    .cart-item-details {
+      flex: 1;
+    }
+    .cart-item-details h3 {
+      font-size: 1.2rem;
+    }
+    .cart-item-details p {
+      color: #555;
+    }
+    .cart-total {
+      text-align: right;
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin-top: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="logo">EcoFinds</div>
+    <div class="menu">
+      <a href="index.html">Feed</a>
+    <a href="addproduct.html">Add Product</a>
+      <a href="mylisting.html">My Listings</a>
+      <a href="cart.html">Cart</a>
+      <a href="prevpur.html">Purchases</a>
+      <a href="dashboard.html">Dashboard</a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <h1>Your Cart</h1>
+    <div id="cartItems">
+   
+    </div>
+    <div class="cart-total" id="cartTotal"></div>
+  </div>
+
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script>
+    const API_URL = "http://localhost:4000/api";
+    const socket = io("http://localhost:4000");
+    function getToken() { return localStorage.getItem("token"); }
+    function saveToken(token) { localStorage.setItem("token", token); }
+    async function api(endpoint, method = "GET", body = null, auth = false) {
+      const headers = {};
+      if (!(body instanceof FormData)) {
+        headers["Content-Type"] = "application/json";
+      }
+      if (auth && getToken()) {
+        headers["Authorization"] = `Bearer ${getToken()}`;
+      }
+      const res = await fetch(`${API_URL}${endpoint}`, {
+        method,
+        headers,
+        body: body ? (body instanceof FormData ? body : JSON.stringify(body)) : null,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "API error");
+      }
+      return res.json();
+    }
+    
+    
+    const mockCart = [
+      { id: 1, title: "Vintage Leather Jacket", price: 15.00, image_url: "https://encrypted-tbn2.gstatic.com/shopping?q=tbn:ANd9GcRk2AiGVnuu3IrRf0YeYQK8o6FBmmZTvdg_RUvX5t5MJN99yVAhlZUeSPzlEGcFbBshNcqzT9t6Mh6MUCMpBlFjT-MrppFPHA" },
+      { id: 2, title: "Used Books Set", price: 5.00, image_url: "https://m.media-amazon.com/images/I/61IxI969WxL._UF1000,1000_QL80_.jpg" },
+    ];
+
+    const cartItemsDiv = document.getElementById("cartItems");
+    const cartTotalDiv = document.getElementById("cartTotal");
+
+    function renderCart() {
+      if (mockCart.length === 0) {
+        cartItemsDiv.innerHTML = "<p>Your cart is empty.</p>";
+        cartTotalDiv.textContent = "";
+        return;
+      }
+      let total = 0;
+      cartItemsDiv.innerHTML = "";
+      mockCart.forEach(item => {
+        total += item.price;
+        const cartItem = document.createElement("div");
+        cartItem.className = "cart-item";
+        cartItem.innerHTML = `
+          <img src="${item.image_url}" alt="${item.title}">
+          <div class="cart-item-details">
+            <h3>${item.title}</h3>
+            <p>$${item.price.toFixed(2)}</p>
+          </div>
+        `;
+        cartItemsDiv.appendChild(cartItem);
+      });
+      cartTotalDiv.textContent = `Total: $${total.toFixed(2)}`;
+    }
+
+    document.addEventListener("DOMContentLoaded", renderCart);
+  </script>
+</body>
+</html>

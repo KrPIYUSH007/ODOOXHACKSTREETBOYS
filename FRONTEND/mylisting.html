@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Listings</title>
+  <style>
+    /* OMAKR.CSS styles */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f8fdf8;
+      color: #333;
+      line-height: 1.5;
+    }
+    .navbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #2f855a;
+      color: white;
+      padding: 1rem 2rem;
+    }
+    .navbar .logo {
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+    .navbar .menu a {
+      color: white;
+      margin-left: 1rem;
+      text-decoration: none;
+    }
+    .navbar .menu a:hover {
+      text-decoration: underline;
+    }
+    .container {
+      padding: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 1rem;
+    }
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      background: white;
+      padding: 1rem;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+    .card img {
+      width: 100%;
+      height: 150px;
+      object-fit: cover;
+      border-radius: 5px;
+      margin-bottom: 0.5rem;
+    }
+    .card h3 {
+      font-size: 1.2rem;
+      margin-bottom: 0.25rem;
+    }
+    .card .btn-group {
+      margin-top: 0.5rem;
+      display: flex;
+      gap: 0.5rem;
+    }
+    .card .btn-group button {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      color: white;
+    }
+    .card .btn-group .edit-btn {
+      background: #2f855a;
+    }
+    .card .btn-group .delete-btn {
+      background: #e53e3e;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="logo">EcoFinds</div>
+    <div class="menu">
+      <a href="index.html">Feed</a>
+           <a href="addproduct.html">Add Product</a>
+      <a href="mylisting.html">My Listings</a>
+      <a href="cart.html">Cart</a>
+      <a href="prevpur.html">Purchases</a>
+      <a href="dashboard.html">Dashboard</a>
+    
+    </div>
+  </nav>
+
+  <div class="container">
+    <h1>My Listings</h1>
+    <section id="myListingsGrid" class="grid"></section>
+  </div>
+
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script>
+    const API_URL = "http://localhost:4000/api";
+    const socket = io("http://localhost:4000");
+    function getToken() { return localStorage.getItem("token"); }
+    function saveToken(token) { localStorage.setItem("token", token); }
+    async function api(endpoint, method = "GET", body = null, auth = false) {
+      const headers = {};
+      if (!(body instanceof FormData)) {
+        headers["Content-Type"] = "application/json";
+      }
+      if (auth && getToken()) {
+        headers["Authorization"] = `Bearer ${getToken()}`;
+      }
+      const res = await fetch(`${API_URL}${endpoint}`, {
+        method,
+        headers,
+        body: body ? (body instanceof FormData ? body : JSON.stringify(body)) : null,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "API error");
+      }
+      return res.json();
+    }
+
+    const myListingsGrid = document.getElementById("myListingsGrid");
+    const MOCK_USER_ID = "user123";
+
+    async function loadMyListings() {
+      try {
+        const products = await api(`/products?user_id=${MOCK_USER_ID}`);
+        renderMyListings(products);
+      } catch (error) {
+        console.error("Error loading listings:", error);
+        myListingsGrid.innerHTML = "<p>Failed to load your listings.</p>";
+      }
+    }
+
+    function renderMyListings(products) {
+      myListingsGrid.innerHTML = "";
+      if (products.length === 0) {
+        myListingsGrid.innerHTML = "<p>You have no products listed.</p>";
+        return;
+      }
+      products.forEach((p) => {
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `
+          <img src="${p.image_url || 'https://via.placeholder.com/150'}" alt="${p.title}">
+          <h3>${p.title}</h3>
+          <p>$${p.price}</p>
+          <div class="btn-group">
+            <button class="edit-btn">Edit</button>
+            <button class="delete-btn">Delete</button>
+          </div>
+        `;
+        myListingsGrid.appendChild(card);
+      });
+    }
+
+    socket.on("newProduct", (p) => {
+      if (p.user_id === MOCK_USER_ID) {
+        loadMyListings(); 
+      }
+    });
+
+    document.addEventListener("DOMContentLoaded", loadMyListings);
+  </script>
+</body>
+</html>
